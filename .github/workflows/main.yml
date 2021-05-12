@@ -1,22 +1,42 @@
-
-name: Publish CxFlow GitHub Action
-
-# Run this workflow on Tags matching v* pattern and publish a new release
+name: Checkmarx SAST Scan on Merge
 on:
+  #pull_request:
   push:
-    tags:
-      - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+    branches:
+      - main
+      - master
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Create a Release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Checkmarx CxFlow Action
+      uses: checkmarx-ts/checkmarx-cxflow-github-action@v1.1 #Github Action version
       with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
+        project: Checkmarx-cxflow-github-action-MergeAction # <-- Insert Checkmarx SAST Project Name
+        team: /CxServer # default is /CxServer/SP/Company
+        checkmarx_url: ${{ secrets.CHECKMARX_SERVER }}  # default is 
+        checkmarx_username: ${{ secrets.CHECKMARX_USERNAME }}   # To be stored in GitHub Secrets.
+        checkmarx_password: ${{ secrets.CHECKMARX_PASSWORD }} # To be stored in GitHub Secrets.
+        checkmarx_client_secret: ${{ secrets.CHECKMARX_CLIENT_SECRET }} # To be stored in GitHub Secrets.
+        break_build: false
+        scanners: sast #,sca  #should look like scanners: sast, sca and uncomment scan secrets 
+        bug_tracker: Sarif
+        params: --namespace=${{ github.repository_owner }} --repo-name=${{ github.event.repository.name }} --branch=${{ github.ref }}
+        # sca_api_url: https://api.scacheckmarx.com # optional, default is https://api.scacheckmarx.com
+        # Provide SCA APP URL
+        # sca_app_url: https://sca.scacheckmarx.com # optional, default is https://sca.scacheckmarx.com
+        # Provide SCA Access Control URL
+        # sca_access_control_url: https://platform.checkmarx.net # optional, default is https://platform.checkmarx.net
+        # Provide SCA Tenant
+        # sca_tenant: ${{ secrets.SCA_TENANT }}  # optional, default is sca-champions
+        # Provide SCA Username
+        # sca_username: ${{ secrets.SCA_USERNAME }}   # optional, default is 
+        # Provide SCA Password
+        # sca_password: ${{ secrets.SCA_PASSWORD }} # optional, default is 
+    - name: Upload SARIF file
+      uses: github/codeql-action/upload-sarif@v1
+      with:
+        sarif_file: cx.sarif
